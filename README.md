@@ -25,3 +25,11 @@ We would like to implement the following features that would make our applicatio
 - Creating custom community groups and/or a general public forum
 - Allowing users to renegotiate posted bets
 - We are seeking $10M for 1% of our company :)
+
+
+## How to Run
+
+Run the following command in the `ODDS-ON` to run the application
+```sh
+npm run dev
+```
