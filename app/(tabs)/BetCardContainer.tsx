@@ -62,7 +62,10 @@ const BetCardContainer: React.FC<BetCardContainerProps> = ({userId}) => {
         odds={selectedBet?.odds || 0}
         side={selectedBet?.side || "OVR"}
         p_money={selectedBet?.p_money || 0}
-        a_money={selectedBet?.a_money || 0 >= 0 ? Math.round(((selectedBet?.p_money || 0) * ((selectedBet?.odds || 0) / 100)) * 100) / 100 : Math.round(((selectedBet?.p_money || 0) / ((selectedBet?.odds || 0) / -100)) * 100) / 100}
+        a_money={(selectedBet?.odds || 0) >= 0 ? 
+          Math.round((selectedBet?.p_money || 0) / ((selectedBet?.odds || 0) / 100)): 
+          Math.abs((selectedBet?.p_money || 0) *((selectedBet?.odds || 0) / 100))
+        }
         userId={userId}
       />
     </View>

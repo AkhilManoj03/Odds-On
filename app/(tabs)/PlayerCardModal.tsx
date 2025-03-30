@@ -28,25 +28,38 @@ const PlayerCardModal: React.FC<PlayerCardModalProps> = ({ player, betId, onClos
   const [entryFee, setEntryFee] = useState<string>("");
   const { session } = useAuth();
   const [coefficients, setCoefficients] = useState<number[]>([]); // State for coefficients
+  const [odds, setOdds] = useState<number>(100); 
+  const [points, setPoints] = useState<number>(player.points);
+  const [side, setSide] = useState<'OVR' | 'UND'>('OVR'); // State for selected side
 
-  const calculateOdds = (value: number) => {
+  const calculateOdds = (value: number, side: 'OVR' | 'UND') => {
     // Function to calculate odds based on slider value using a piecewise function
     console.log('Coefficients:', coefficients);
     const a = coefficients[0];
     const b = coefficients[1];
     const c = coefficients[2];
     const d = coefficients[3];
-    if (value < player.points) {
-      console.log('Value is less than player points');
-      return a * value**3 + b * value**2 + c * value + d + 200;
+    if (side === 'OVR') {
+      console.log('Calculating odds for OVR');
+      if (value < player.points) {
+        console.log('Value is less than player points');
+        return -1 * (a * value**3 + b * value**2 + c * value + d + 200);
+      } else {
+        console.log('Value is greater than or equal to player points');
+        return -1 * (a * value**3 + b * value**2 + c * value + d);
+      }
     } else {
-      console.log('Value is greater than or equal to player points');
-      return a * value**3 + b * value**2 + c * value + d;
+      console.log('Calculating odds for UND');
+      if (value < player.points) {
+        console.log('Value is less than player points');
+        return a * value**3 + b * value**2 + c * value + d + 200;
+      } else {
+        console.log('Value is greater than or equal to player points');
+        return a * value**3 + b * value**2 + c * value + d;
+      }
     }
+ 
   };
-
-  const [odds, setOdds] = useState<number>(100); 
-  const [points, setPoints] = useState<number>(player.points);
 
   useEffect(() => {
     const fetchBetData = async () => {
@@ -62,7 +75,6 @@ const PlayerCardModal: React.FC<PlayerCardModalProps> = ({ player, betId, onClos
   }, [betId]);
 
   const handlePostBet = async () => {
-    const side = 'OVR'; // Determine side based on slider value
     const p_money = parseFloat(entryFee); // Convert entry fee to number
     
     if (session && session.user.id) {
@@ -71,6 +83,11 @@ const PlayerCardModal: React.FC<PlayerCardModalProps> = ({ player, betId, onClos
     } else {
       console.error('User is not logged in');
     }
+  };
+
+  const handleSideChange = (selectedSide: 'OVR' | 'UND') => {
+    setSide(selectedSide); // Update the selected side
+    setOdds(-1 * odds); // Recalculate odds based on the current points
   };
 
   return (
@@ -84,15 +101,27 @@ const PlayerCardModal: React.FC<PlayerCardModalProps> = ({ player, betId, onClos
         step={1}
         sliderValue={points} // Use player's points as the initial value
         onValueChange={(value) => {
-          const odds = setOdds(calculateOdds(value));
-          const points = setPoints(value);
-          console.log('Odds:', odds);
-          console.log('Slider Value:', points);
-          }
-        } 
+          setPoints(value);
+          setOdds(calculateOdds(value, side)); // Update odds when slider value changes
+        }} 
       />
       <Text style={styles.lineText}>Line: {points} pts</Text>
       <Text style={styles.oddsText}>Odds: {odds > 0 ? `+${Math.round(odds)}` : `${Math.round(odds)}`}</Text> 
+
+      <View style={styles.sideSelectionContainer}>
+        <TouchableOpacity
+          style={[styles.sideButton, { backgroundColor: side === 'OVR' ? '#1F8A70' : '#FFFFFF' }]}
+          onPress={() => handleSideChange('OVR')}
+        >
+          <Text style={{ color: side === 'OVR' ? '#FFFFFF' : '#1F8A70' }}>Over</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.sideButton, { backgroundColor: side === 'UND' ? '#1F8A70' : '#FFFFFF' }]}
+          onPress={() => handleSideChange('UND')}
+        >
+          <Text style={{ color: side === 'UND' ? '#FFFFFF' : '#1F8A70' }}>Under</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.entryFeeContainer}>
         <Text>Entry Fee:</Text>
@@ -148,6 +177,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginVertical: 10,
     color: "#007AFF",
+  },
+  sideSelectionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginVertical: 20,
+  },
+  sideButton: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginHorizontal: 5, 
   },
   entryFeeContainer: {
     width: "100%",

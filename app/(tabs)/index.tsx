@@ -173,7 +173,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   tabContainer: {
-    padding: 20,
     alignItems: 'center',
   },
   featuredSection: {

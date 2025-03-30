@@ -20,13 +20,6 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
   return (
     <View style={styles.header}>
       <View style={styles.balanceContainer}>
-        <Image
-          source={{
-            uri: "https://cdn.builder.io/api/v1/image/assets/TEMP/32486ad0164c62e0d998ea7d1086d74b1db9ef60",
-          }}
-          style={styles.plusIcon}
-          accessibilityLabel="Plus"
-        />
         <View>
           <Text style={styles.balanceText}>
             {balanceLoading ? 'Loading...' : `$${balance?.toFixed(2) || '0.00'}`}
@@ -53,7 +46,7 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: 35,
+    paddingTop: 40,
     paddingRight: 12,
     paddingBottom: 10,
     paddingLeft: 12,
@@ -68,10 +61,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-  },
-  plusIcon: {
-    width: 30,
-    height: 30,
   },
   balanceText: {
     color: "#000",

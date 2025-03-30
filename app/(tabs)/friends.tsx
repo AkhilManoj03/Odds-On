@@ -96,7 +96,6 @@ export default function FriendsScreen() {
   return (
     <View style={styles.container}>
       <Header />
-      <ScrollView style={styles.scrollView}>
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -169,7 +168,6 @@ export default function FriendsScreen() {
             </View>
           </>
         )}
-      </ScrollView>
       <BottomNavBar onNavigate={handleNavigation} />
     </View>
   );

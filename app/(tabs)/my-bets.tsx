@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import TabToggle from './TabToggle';
 import BottomNavBar from './BottomNavBar';
 import Header from './Header';
 import MyBetsToggle from './MyBetsToggle';
 import { useLiveBets } from '@/hooks/useBets';
 import { useAuth } from "@/hooks/useAuth";
+import MyBetCard from './MyBetCard';
 
 const MyBetsScreen = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
@@ -16,7 +16,7 @@ const MyBetsScreen = () => {
   const userId = session?.user?.id;
 
   // Filter for active bets
-  const filteredLiveBets = liveBets.filter(bet => bet.poster === userId && bet.acceptor !== null);
+  const filteredLiveBets = liveBets.filter((bet => bet.poster === userId && bet.acceptor !== null || bet.acceptor === userId));
 
   // Filter for completed bets
   const filteredCompletedBets = liveBets.filter(bet => bet.poster === userId && bet.winner !== null);
@@ -46,7 +46,9 @@ const MyBetsScreen = () => {
   return (
     <View style={styles.container}>
       <Header />
-      <MyBetsToggle activeTab={activeTab} onTabChange={setActiveTab} />
+      <View style={styles.tabContainer}>
+        <MyBetsToggle activeTab={activeTab} onTabChange={setActiveTab} />
+      </View>
 
       <ScrollView style={styles.scrollView}>
         {liveBetsLoading ? (
@@ -55,27 +57,40 @@ const MyBetsScreen = () => {
           filteredLiveBets.length === 0 ? (
             <Text style={styles.loadingText}>No active bets available.</Text>
           ) : (
-            filteredLiveBets.map(bet => (
-              <View key={bet.id} style={styles.section}>
-                <Text style={styles.title}>{bet.name}</Text>
-                <Text style={styles.statLine}>{`${bet.points} pts (${bet.odds})`}</Text>
-                <Text style={styles.value}>Value: ${bet.p_money.toFixed(2)}</Text>
-                <Text style={styles.value}>Friend: {formatEmail(bet.acceptor_email)}</Text>
-              </View>
-            ))
+            <View style={styles.cardGrid}>
+              {filteredLiveBets.map(bet => (
+                <MyBetCard
+                  key={bet.id}
+                  sender={formatEmail(bet.poster_email)}
+                  playerName={bet.name}
+                  points={bet.points}
+                  p_money={bet.p_money}
+                  odds={bet.odds}
+                  side={bet.side}
+                  onPress={() => {}}
+                />
+              ))}
+            </View>
           )
         ) : (
           filteredCompletedBets.length === 0 ? (
             <Text style={styles.loadingText}>No completed bets available.</Text>
           ) : (
-            filteredCompletedBets.map(bet => (
-              <View key={bet.id} style={styles.section}>
-                <Text style={styles.title}>{bet.name}</Text>
-                <Text style={styles.statLine}>{`${bet.points} pts (${bet.odds})`}</Text>
-                <Text style={styles.value}>Value: ${bet.p_money.toFixed(2)}</Text>
-                <Text style={styles.value}>Winner: {formatEmail(bet.winner_email)}</Text>
-              </View>
-            ))
+            <View style={styles.cardGrid}>
+              {filteredCompletedBets.map(bet => (
+                <MyBetCard
+                  key={bet.id}
+                  sender={formatEmail(bet.poster_email)}
+                  playerName={bet.name}
+                  points={bet.points}
+                  p_money={bet.p_money}
+                  odds={bet.odds}
+                  side={bet.side}
+                  winner={bet.winner ? formatEmail(bet.winner) : undefined}
+                  onPress={() => {}}
+                />
+              ))}
+            </View>
           )
         )}
       </ScrollView>
@@ -91,6 +106,16 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  tabContainer: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  cardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between', // Space between cards
+    padding: 20,
   },
   section: {
     padding: 20,
