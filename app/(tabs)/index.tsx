@@ -5,15 +5,18 @@ import { useBalance } from '@/hooks/useBalance';
 import { useBets, useLiveBets } from '@/hooks/useBets';
 import { useRouter } from 'expo-router';
 import TabToggle from './TabToggle';
-import PlayerCardGrid from './PlayerCardGrid';
+import GameCardGrid from './GameCardGrid';
 import BottomNavBar from './BottomNavBar';
 import Header from './Header';
 import BetCardContainer from './BetCardContainer';
+import { useAvailableLines } from '@/hooks/useAvailableLines';
+import { Line } from 'react-native-svg';
 
 export default function HomeScreen() {
   const { session, signOut } = useAuth();
   const { balance, loading: balanceLoading } = useBalance();
   const { bets, loading: betsLoading } = useBets();
+  const { lines, loading: gameDataLoading } = useAvailableLines(); // Ensure game data is loaded for the player images
   const { liveBets, loading: liveBetsLoading } = useLiveBets();
   const [activeTab, setActiveTab] = useState<'open'| 'friends'>('open');
   const router = useRouter();
@@ -21,46 +24,17 @@ export default function HomeScreen() {
   // Extract user ID from session
   const userId = session?.user?.id;
 
-  
-
   // Transform bets data for PlayerCardGrid
-  const playerCards = bets.map(bet => {
-    let imageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/1627936.png"; // Default image
-    if (bet.player.includes("alex")) {
-      imageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/1627936.png";
-    } else if (bet.player.includes("Luka")) {
-      imageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/1629029.png";
-    }
-    else if (bet.player.includes("LeBron")) {
-      imageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/2544.png";
-    }
-    else if (bet.player.includes("Franz")) {
-      imageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/1630532.png";
-    }
-    else if (bet.player.includes("Harden")) {
-      imageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/201935.png";
-    }
-    else if (bet.player.includes("Naji")) {
-      imageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/237.png";
-    }
-    else if(bet.player.includes("Black")) {
-      imageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/1630532.png";
-    }
-    else if(bet.player.includes("Klay")) {
-      imageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/203081.png";
-    }
-    else if(bet.player.includes("Denis")) { 
-      imageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/201939.png";
-    }
+  const gameCards = lines.map(line => {
 
+    const name = `${line.away_team} x ${line.home_team}`
 
     return {
-      id: bet.id,
-      name: bet.player,
-      opponent: "Today's Game", // Default value since it's not in the schema
-      points: bet.points,
-      imageUrl: imageUrl,
-      odds: bet.odds
+      id: line.id,
+      name: name,
+      points: line.point,
+      odds: line.price,
+      outcome: line.outcome_name
     };
   });
 
@@ -121,7 +95,7 @@ export default function HomeScreen() {
               ) : bets.length === 0 ? (
                 <Text style={styles.loadingText}>No bets available at the moment</Text>
               ) : (
-                <PlayerCardGrid players={playerCards} />
+                <GameCardGrid games={gameCards} />
               )}
             </>
           ) : (

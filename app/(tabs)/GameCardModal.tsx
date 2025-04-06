@@ -7,29 +7,29 @@ import {
   StyleSheet,
   TextInput,
 } from "react-native";
-import Slider from '@miblanchard/react-native-slider';
 import { postBet, getBetById } from '@/hooks/useBets'; // Import the new function
 import { useAuth } from '@/hooks/useAuth';
 import MySlider from "./MySlider";
 
-interface Player {
+interface Game {
   name: string;
-  opponent: string;
   points: number;
+  outcome: string; // This will be used as the opponent in the modal
+  odds: number; // This will be used to calculate the odds in the modal
 }
 
-interface PlayerCardModalProps {
-  player: Player;
+interface GameCardModalProps {
+  game: Game;
   betId: string; // Accept betId prop
   onClose: () => void;
 }
 
-const PlayerCardModal: React.FC<PlayerCardModalProps> = ({ player, betId, onClose }) => {
+const GameCardModal: React.FC<GameCardModalProps> = ({ game, betId, onClose }) => {
   const [entryFee, setEntryFee] = useState<string>("");
   const { session } = useAuth();
   const [coefficients, setCoefficients] = useState<number[]>([]); // State for coefficients
   const [odds, setOdds] = useState<number>(100); 
-  const [points, setPoints] = useState<number>(player.points);
+  const [points, setPoints] = useState<number>(game.points);
   const [side, setSide] = useState<'OVR' | 'UND'>('OVR'); // State for selected side
 
   const calculateOdds = (value: number, side: 'OVR' | 'UND') => {
@@ -41,7 +41,7 @@ const PlayerCardModal: React.FC<PlayerCardModalProps> = ({ player, betId, onClos
     const d = coefficients[3];
     if (side === 'OVR') {
       console.log('Calculating odds for OVR');
-      if (value < player.points) {
+      if (value < game.points) {
         console.log('Value is less than player points');
         return -1 * (a * value**3 + b * value**2 + c * value + d + 200);
       } else {
@@ -50,7 +50,7 @@ const PlayerCardModal: React.FC<PlayerCardModalProps> = ({ player, betId, onClos
       }
     } else {
       console.log('Calculating odds for UND');
-      if (value < player.points) {
+      if (value < game.points) {
         console.log('Value is less than player points');
         return a * value**3 + b * value**2 + c * value + d + 200;
       } else {
@@ -78,7 +78,7 @@ const PlayerCardModal: React.FC<PlayerCardModalProps> = ({ player, betId, onClos
     const p_money = parseFloat(entryFee); // Convert entry fee to number
     
     if (session && session.user.id) {
-      await postBet(player.name, points, Math.round(odds), side, p_money, session.user.id); // Use coefficients for odds
+      await postBet(game.name, points, Math.round(odds), side, p_money, session.user.id); // Use coefficients for odds
       onClose(); // Close the modal after posting the bet
     } else {
       console.error('User is not logged in');
@@ -92,7 +92,7 @@ const PlayerCardModal: React.FC<PlayerCardModalProps> = ({ player, betId, onClos
 
   return (
     <View style={styles.container}>
-      <Text style={styles.playerName}>{player.name}</Text>
+      <Text style={styles.playerName}>{game.name}</Text>
 
       <Text style={styles.sliderLabel}>Set your money line</Text>
       <MySlider
@@ -226,4 +226,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PlayerCardModal;
+export default GameCardModal;
