@@ -1,8 +1,8 @@
 const axios = require('axios')
+require('dotenv').config({ path: '.env.local' })
 
-// An api key is emailed to you when you sign up to a plan
-// Get a free API key at https://api.the-odds-api.com/
-const apiKey = 'edabf794c42b8af17a87914203263c7b'
+// Get API key from environment variables
+const apiKey = process.env.ODDS_API_KEY
 
 const sportKey = 'basketball_nba' // use the sport_key from the /sports endpoint below, or use 'upcoming' to see the next 8 games across all sports
 
@@ -45,28 +45,28 @@ console.log(endOfDayISO);
     For examples of usage quota costs, see https://the-odds-api.com/liveapi/guides/v4/#usage-quota-costs
 
 */
-axios.get(`https://api.the-odds-api.com/v4/sports/${sportKey}/odds`, {
-    params: {
-        apiKey,
-        regions,
-        markets,
-        oddsFormat,
-        dateFormat,
-        commenceTimeTo: endOfDayISO
-    }
-})
-.then(response => {
-    // response.data.data contains a list of live and 
-    //   upcoming events and odds for different bookmakers.
-    // Events are ordered by start time (live events are first)
-    console.log(JSON.stringify(response.data))
+// axios.get(`https://api.the-odds-api.com/v4/sports/${sportKey}/odds`, {
+//     params: {
+//         apiKey,
+//         regions,
+//         markets,
+//         oddsFormat,
+//         dateFormat,
+//         commenceTimeTo: endOfDayISO
+//     }
+// })
+// .then(response => {
+//     // response.data.data contains a list of live and 
+//     //   upcoming events and odds for different bookmakers.
+//     // Events are ordered by start time (live events are first)
+//     console.log(JSON.stringify(response.data))
 
-    // Check your usage
-    console.log('Remaining requests',response.headers['x-requests-remaining'])
-    console.log('Used requests',response.headers['x-requests-used'])
+//     // Check your usage
+//     console.log('Remaining requests',response.headers['x-requests-remaining'])
+//     console.log('Used requests',response.headers['x-requests-used'])
 
-})
-.catch(error => {
-    console.log('Error status', error.response.status)
-    console.log(error.response.data)
-})
+// })
+// .catch(error => {
+//     console.log('Error status', error.response.status)
+//     console.log(error.response.data)
+// })
