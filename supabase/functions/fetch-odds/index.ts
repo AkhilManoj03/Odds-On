@@ -7,48 +7,64 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // Function to save games to Supabase
 async function saveGamesToSupabase(games) {
-  try {
-    // Transform the data to match your Supabase table structure
-    const linesToInsert = games.flatMap((game)=>game.bookmakers.flatMap((bookmaker)=>bookmaker.markets.flatMap((market)=>market.outcomes.map((outcome)=>({
-              game_id: game.id,
-              sport_key: game.sport_key,
-              sport_title: game.sport_title,
-              commence_time: game.commence_time,
-              home_team: game.home_team,
-              away_team: game.away_team,
-              bookmaker_key: bookmaker.key,
-              bookmaker_title: bookmaker.title,
-              market_key: market.key,
-              outcome_name: outcome.name,
-              price: outcome.price,
-              point: outcome.point,
-              last_update: market.last_update
-            })))));
-    // Insert the data in batches to avoid hitting size limits
-    const batchSize = 100;
-    for(let i = 0; i < linesToInsert.length; i += batchSize){
-      const batch = linesToInsert.slice(i, i + batchSize);
-      const { error } = await supabase.from('available_lines').upsert(batch, {
-        onConflict: 'game_id,bookmaker_key,market_key,outcome_name',
-        ignoreDuplicates: false
-      });
-      if (error) {
-        console.error('Error inserting batch:', error);
-        throw error;
-      }
-    }
-    console.log(`Successfully saved ${linesToInsert.length} betting lines to Supabase`);
-    return true;
-  } catch (error) {
-    console.error('Error saving games to Supabase:', error);
-    throw error;
+  // Delete ALL existing entries from the available_lines table
+  console.log('Deleting all existing entries from available_lines table...');
+  const { error: deleteError } = await supabase
+    .from('available_lines')
+    .delete()
+    .neq('game_id', 'dummy'); // This will match all rows
+  
+  if (deleteError) {
+    console.error('Error deleting existing entries:', deleteError);
+    throw deleteError;
   }
+  
+  console.log('Successfully deleted all existing entries');
+
+  const linesToInsert = games.flatMap((game) =>
+    game.bookmakers.flatMap((bookmaker) =>
+      bookmaker.markets.flatMap((market) =>
+        market.outcomes.map((outcome) => ({
+          game_id: game.id,
+          sport_key: game.sport_key,
+          sport_title: game.sport_title,
+          commence_time: game.commence_time,
+          home_team: game.home_team,
+          away_team: game.away_team,
+          bookmaker_key: bookmaker.key,
+          bookmaker_title: bookmaker.title,
+          market_key: market.key,
+          outcome_name: outcome.name,
+          price: outcome.price,
+          point: outcome.point,
+          last_update: new Date().toISOString()
+        }))
+      )
+    )
+  );
+
+  // Process in batches of 100
+  console.log(`Inserting ${linesToInsert.length} new betting lines...`);
+  for (let i = 0; i < linesToInsert.length; i += 100) {
+    const batch = linesToInsert.slice(i, i + 100);
+    const { error } = await supabase
+      .from('available_lines')
+      .insert(batch); // Changed from upsert to insert since we're deleting first
+
+    if (error) {
+      console.error('Error saving batch:', error);
+      throw error;
+    }
+  }
+
+  console.log(`Successfully saved ${linesToInsert.length} betting lines`);
 }
 // Function to fetch games from the odds API
 async function getUpcomingGames(sportKey = 'basketball_nba') {
   try {
     const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+    endOfDay.setHours(3, 59, 59);
     const endOfDayISO = endOfDay.toISOString().split('.')[0] + 'Z';
     const apiKey = Deno.env.get('ODDS_API_KEY') || '';
     const response = await axios.get(`https://api.the-odds-api.com/v4/sports/${sportKey}/odds`, {
