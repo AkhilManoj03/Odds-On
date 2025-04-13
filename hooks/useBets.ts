@@ -26,6 +26,19 @@ interface LiveBet {
   side: 'OVR' | 'UND';
 }
 
+interface BettingCoefficients {
+  game_id: string;
+  cubic_coeff_0: number;
+  cubic_coeff_1: number;
+  cubic_coeff_2: number;
+  cubic_coeff_3: number;
+  line: number;
+  min_line: number;
+  max_line: number;
+  home_team: string;
+  away_team: string;
+}
+
 export function useBets() {
   const [bets, setBets] = useState<Bet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -304,5 +317,83 @@ export async function postBet(name: string, points: number, odds: number, side: 
     console.log('Bet posted successfully and balance updated');
   } catch (error) {
     console.error('Error posting bet:', error);
+  }
+}
+
+export function useBettingCoefficients() {
+  const [coefficients, setCoefficients] = useState<BettingCoefficients[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadCoefficients();
+
+    // Subscribe to changes in betting_coefficients table
+    const coefficientsSubscription = supabase
+      .channel('betting_coefficients_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'betting_coefficients',
+      }, () => {
+        console.log('Betting coefficients change detected, reloading coefficients');
+        loadCoefficients();
+      })
+      .subscribe();
+
+    return () => {
+      coefficientsSubscription.unsubscribe();
+    };
+  }, []);
+
+  const loadCoefficients = async () => {
+    try {
+      console.log('Starting to load betting coefficients...');
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('betting_coefficients')
+        .select('*');
+
+      if (error) {
+        console.error('Error loading betting coefficients:', error);
+        setError(error.message);
+        return;
+      }
+
+      console.log('Betting coefficients loaded successfully:', data);
+      setCoefficients(data || []);
+    } catch (err) {
+      console.error('Exception while loading betting coefficients:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    coefficients,
+    loading,
+    error,
+    loadCoefficients,
+  };
+}
+
+export async function getBettingCoefficients(): Promise<BettingCoefficients[]> {
+  try {
+    console.log('Fetching all betting coefficients');
+    const { data, error } = await supabase
+      .from('betting_coefficients')
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching betting coefficients:', error);
+      throw error;
+    }
+
+    console.log('Fetched betting coefficients:', data);
+    return data || [];
+  } catch (error) {
+    console.error('Error in getBettingCoefficients:', error);
+    throw error;
   }
 }

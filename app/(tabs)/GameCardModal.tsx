@@ -12,82 +12,58 @@ import { useAuth } from '@/hooks/useAuth';
 import MySlider from "./MySlider";
 
 interface Game {
+  id: string;
   name: string;
   points: number;
-  outcome: string; // This will be used as the opponent in the modal
-  odds: number; // This will be used to calculate the odds in the modal
+  odds: number;
+  coefficients: number[];
+  min_line: number;
+  max_line: number;
 }
 
 interface GameCardModalProps {
   game: Game;
-  betId: string; // Accept betId prop
   onClose: () => void;
 }
 
-const GameCardModal: React.FC<GameCardModalProps> = ({ game, betId, onClose }) => {
+const GameCardModal: React.FC<GameCardModalProps> = ({ game, onClose }) => {
   const [entryFee, setEntryFee] = useState<string>("");
   const { session } = useAuth();
-  const [coefficients, setCoefficients] = useState<number[]>([]); // State for coefficients
-  const [odds, setOdds] = useState<number>(100); 
+  const [odds, setOdds] = useState<number>(game.odds);
   const [points, setPoints] = useState<number>(game.points);
-  const [side, setSide] = useState<'OVR' | 'UND'>('OVR'); // State for selected side
+  const [side, setSide] = useState<'OVR' | 'UND'>('OVR');
 
   const calculateOdds = (value: number, side: 'OVR' | 'UND') => {
-    // Function to calculate odds based on slider value using a piecewise function
-    console.log('Coefficients:', coefficients);
-    const a = coefficients[0];
-    const b = coefficients[1];
-    const c = coefficients[2];
-    const d = coefficients[3];
+    const [a, b, c, d] = game.coefficients;
     if (side === 'OVR') {
-      console.log('Calculating odds for OVR');
       if (value < game.points) {
-        console.log('Value is less than player points');
         return -1 * (a * value**3 + b * value**2 + c * value + d + 200);
       } else {
-        console.log('Value is greater than or equal to player points');
         return -1 * (a * value**3 + b * value**2 + c * value + d);
       }
     } else {
-      console.log('Calculating odds for UND');
       if (value < game.points) {
-        console.log('Value is less than player points');
         return a * value**3 + b * value**2 + c * value + d + 200;
       } else {
-        console.log('Value is greater than or equal to player points');
         return a * value**3 + b * value**2 + c * value + d;
       }
     }
- 
   };
 
-  useEffect(() => {
-    const fetchBetData = async () => {
-      try {
-        const betData = await getBetById(betId); // Fetch bet data by ID
-        setCoefficients(betData.coefficients); // Set coefficients from fetched data
-      } catch (error) {
-        console.error('Error fetching bet data:', error);
-      }
-    };
-
-    fetchBetData();
-  }, [betId]);
-
   const handlePostBet = async () => {
-    const p_money = parseFloat(entryFee); // Convert entry fee to number
+    const p_money = parseFloat(entryFee);
     
     if (session && session.user.id) {
-      await postBet(game.name, points, Math.round(odds), side, p_money, session.user.id); // Use coefficients for odds
-      onClose(); // Close the modal after posting the bet
+      await postBet(game.name, points, Math.round(odds), side, p_money, session.user.id);
+      onClose();
     } else {
       console.error('User is not logged in');
     }
   };
 
   const handleSideChange = (selectedSide: 'OVR' | 'UND') => {
-    setSide(selectedSide); // Update the selected side
-    setOdds(-1 * odds); // Recalculate odds based on the current points
+    setSide(selectedSide);
+    setOdds(calculateOdds(points, selectedSide));
   };
 
   return (
@@ -96,17 +72,17 @@ const GameCardModal: React.FC<GameCardModalProps> = ({ game, betId, onClose }) =
 
       <Text style={styles.sliderLabel}>Set your money line</Text>
       <MySlider
-        minimumValue={0}
-        maximumValue={49}
+        minimumValue={game.min_line}
+        maximumValue={game.max_line}
         step={1}
-        sliderValue={points} // Use player's points as the initial value
+        sliderValue={points}
         onValueChange={(value) => {
           setPoints(value);
-          setOdds(calculateOdds(value, side)); // Update odds when slider value changes
+          setOdds(calculateOdds(value, side));
         }} 
       />
-      <Text style={styles.lineText}>Line: {points} pts</Text>
-      <Text style={styles.oddsText}>Odds: {odds > 0 ? `+${Math.round(odds)}` : `${Math.round(odds)}`}</Text> 
+      <Text style={styles.lineText}>Line: {points} </Text>
+      <Text style={styles.oddsText}>Odds: {odds > 0 ? `+${Math.round(odds)}` : `${Math.round(odds)}`}</Text>
 
       <View style={styles.sideSelectionContainer}>
         <TouchableOpacity

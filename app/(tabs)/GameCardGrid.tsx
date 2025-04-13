@@ -7,8 +7,10 @@ interface Game {
   id: string;
   name: string;
   points: number;
-  outcome: string;
   odds: number;
+  coefficients: number[];
+  min_line: number;
+  max_line: number;
 }
 
 interface GameCardGridProps {
@@ -35,7 +37,6 @@ const GameCardGrid: React.FC<GameCardGridProps> = ({ games }) => {
         <GameCard
           name={game.name}
           points={game.points}
-          outcome={game.outcome}
           odds={game.odds} // Assuming opponent is used for outcome in this context
           onPress={() => handleCardPress(game)}
         />
@@ -46,7 +47,7 @@ const GameCardGrid: React.FC<GameCardGridProps> = ({ games }) => {
           animationType="slide"
           onRequestClose={closeModal}
         >
-          <GameCardModal game={selectedGame} betId={selectedGame.id} onClose={closeModal} />
+          <GameCardModal game={selectedGame} onClose={closeModal} />
         </Modal>
       )}
     </View>

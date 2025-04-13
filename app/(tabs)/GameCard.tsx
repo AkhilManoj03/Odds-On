@@ -4,12 +4,11 @@ import { useRouter } from 'expo-router';
 interface GameCardProps {
   name: string;
   points: number;
-  outcome: string;
   odds: number;
   onPress?: () => void;
 }
 
-export default function GameCard({ name, points, outcome, odds, onPress }: GameCardProps) {
+export default function GameCard({ name, points, odds, onPress }: GameCardProps) {
   const router = useRouter();
   const formattedOdds = odds >= 0 ? `+${odds}` : odds.toString();
 
@@ -24,7 +23,6 @@ export default function GameCard({ name, points, outcome, odds, onPress }: GameC
         </View>
         <View style={styles.bottomRow}>
           <View style={styles.overUnderContainer}>
-            <Text style={styles.overUnderLabel}>{outcome}</Text>
             <Text style={styles.points}>{points}</Text>
           </View>
           <Text style={[styles.odds, odds >= 0 ? styles.positiveOdds : styles.negativeOdds]}>

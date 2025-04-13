@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useBalance } from '@/hooks/useBalance';
-import { useBets, useLiveBets } from '@/hooks/useBets';
+import { useBets, useLiveBets, useBettingCoefficients } from '@/hooks/useBets';
 import { useRouter } from 'expo-router';
 import TabToggle from './TabToggle';
 import GameCardGrid from './GameCardGrid';
@@ -10,13 +10,12 @@ import BottomNavBar from './BottomNavBar';
 import Header from './Header';
 import BetCardContainer from './BetCardContainer';
 import { useAvailableLines } from '@/hooks/useAvailableLines';
-import { Line } from 'react-native-svg';
 
 export default function HomeScreen() {
   const { session, signOut } = useAuth();
   const { balance, loading: balanceLoading } = useBalance();
-  const { bets, loading: betsLoading } = useBets();
-  const { lines, loading: gameDataLoading } = useAvailableLines(); // Ensure game data is loaded for the player images
+  const { coefficients, loading: coefficientsLoading } = useBettingCoefficients();
+  const { lines, loading: gameDataLoading } = useAvailableLines();
   const { liveBets, loading: liveBetsLoading } = useLiveBets();
   const [activeTab, setActiveTab] = useState<'open'| 'friends'>('open');
   const router = useRouter();
@@ -24,40 +23,36 @@ export default function HomeScreen() {
   // Extract user ID from session
   const userId = session?.user?.id;
 
-  // Transform bets data for PlayerCardGrid
-  const gameCards = lines.map(line => {
-
-    const name = `${line.away_team} x ${line.home_team}`
-
-    return {
-      id: line.id,
-      name: name,
-      points: line.point,
-      odds: line.price,
-      outcome: line.outcome_name
-    };
-  });
+  // Transform coefficients data for GameCardGrid
+  const gameCards = coefficients.map(coeff => ({
+    id: coeff.game_id,
+    name: `${coeff.away_team} @ ${coeff.home_team}`, // You might want to get actual game names from another source
+    points: Number((coeff.line).toFixed(0)),
+    odds: -100, // Default odds at x_at_neg_100
+    coefficients: [coeff.cubic_coeff_0, coeff.cubic_coeff_1, coeff.cubic_coeff_2, coeff.cubic_coeff_3],
+    min_line: coeff.min_line,
+    max_line: coeff.max_line,
+  }));
 
   // Transform live bets data for BetCardContainer
   const betCardData = liveBets.map(bet => ({
-    sender: bet.poster_email.split('@')[0].charAt(0).toUpperCase() + bet.poster_email.split('@')[0].slice(1), // Capitalize the first letter of the email username part
+    sender: bet.poster_email.split('@')[0].charAt(0).toUpperCase() + bet.poster_email.split('@')[0].slice(1),
     playerName: bet.name,
-    statLine: `${bet.points} pts (${bet.odds})`, // Include odds in the stat line
-    value: `$${bet.p_money.toFixed(2)}`, // Format money with 2 decimal places
-    side: bet.side // Use the side from the live bet
+    statLine: `${bet.points} pts (${bet.odds})`,
+    value: `$${bet.p_money.toFixed(2)}`,
+    side: bet.side
   }));
 
   const handleNavigation = (index: number) => {
     switch (index) {
-      case 0: // Home
-        // Already on home page
+      case 0:
         console.log('debug: Already on home page');
         break;
       case 1:
         console.log('debug: Navigating to My Bets');
         router.push('/my-bets');
         break;
-      case 2: // 
+      case 2:
         console.log('debug: Navigating to Friends');
         router.push('/friends');
         break;
@@ -90,11 +85,12 @@ export default function HomeScreen() {
           {activeTab === 'open' ? (
             <>
               <Text style={styles.sectionTitle}>Available Bets</Text>
-              {betsLoading ? (
+              {coefficientsLoading ? (
                 <Text style={styles.loadingText}>Loading bets...</Text>
-              ) : bets.length === 0 ? (
+              ) : gameCards.length === 0 ? (
                 <Text style={styles.loadingText}>No bets available at the moment</Text>
               ) : (
+                console.log('debug: gameCards', gameCards),
                 <GameCardGrid games={gameCards} />
               )}
             </>
