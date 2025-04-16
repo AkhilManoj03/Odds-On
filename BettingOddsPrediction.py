@@ -1,6 +1,13 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from scipy import stats
+
+def remove_outliers(df, threshold=1):
+    if df['point'].std() == 0: z_scores_point = np.zeros(len(df))
+    else: z_scores_point = np.abs(stats.zscore(df['point']))
+    mask = (z_scores_point < threshold)
+    return df[mask]
 
 def get_coefficients(df, degree):
     return np.polyfit(df.index, df['mean'], degree)
@@ -12,10 +19,12 @@ def set_pivot(df):
     return pivot_point
 
 def pivot(df, pivot_point):
-    df_below = df[df.index < pivot_point[0]]
-    df_above = df[df.index > pivot_point[0]]
-    df_below["mean"] = df_below["mean"] + df_below["std"]
-    df_above["mean"] = df_above["mean"] - df_above["std"]
+    df_below = df[df.index < pivot_point[0]].copy()
+    df_above = df[df.index > pivot_point[0]].copy()
+    
+    df_below.loc[:, "mean"] = df_below["mean"] + df_below["std"]
+    df_above.loc[:, "mean"] = df_above["mean"] - df_above["std"]
+    
     return pd.concat([df_below, df_above])
 
 def max_derivative(coeffs, min, max):
@@ -59,9 +68,21 @@ def plot_line(coeffs, min, max, line):
     plt.plot(point, -price, label="Over")
     plt.legend()
 
-def get_params(path):
+def get_params(path, plot=True):
     odds = pd.read_csv(path)
-    avg_odds = odds.groupby('point')['price'].agg(['mean', 'std'])
+    odds = odds[odds["price"] < 0]
+    odds_clean = remove_outliers(odds)
+    avg_odds = odds_clean.groupby('point')['price'].agg(['mean', 'std'])
+
+    if len(avg_odds) == 1:
+        original_index = avg_odds.index[0]
+        original_row = avg_odds.iloc[0]
+        
+        above_row = pd.DataFrame([original_row], columns=['mean', 'std'], index=[original_index + 1])
+        below_row = pd.DataFrame([original_row], columns=['mean', 'std'], index=[original_index - 1])
+        
+        avg_odds = pd.concat([below_row, avg_odds, above_row])
+    print(avg_odds)
 
     min_line = avg_odds.index.min() - 50
     max_line = avg_odds.index.max() + 50
@@ -70,7 +91,7 @@ def get_params(path):
     plt.minorticks_on()
     plt.tick_params(axis='x', which='major', direction="inout")
 
-    plt.scatter(odds["point"], odds["price"], label="Sportsbook Lines")
+    plt.scatter(odds_clean["point"], odds_clean["price"], label="Sportsbook Lines")
     plot_mean(avg_odds)
 
     linear_coeffs = get_coefficients(avg_odds, 1)
@@ -91,15 +112,14 @@ def get_params(path):
         plot_fit(cubic_coeffs, min_line, max_line)
         max_der = max_derivative(cubic_coeffs, min_line, max_line)
 
-    plt.show()
+    if plot: plt.show()
 
     line = get_line(cubic_coeffs)
     plot_line(cubic_coeffs, min_line, max_line, line)
-    plt.show()
+    if plot: plt.show()
 
     return [cubic_coeffs, line, min_line, max_line]
 
 
-path = '/Users/josh/Documents/2024-5 Spring/available_lines_rows2.csv'
-
+path = '/Users/josh/Documents/2024-5 Spring/available_lines_rows.csv'
 print(get_params(path))

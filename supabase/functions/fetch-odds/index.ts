@@ -1,12 +1,42 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import axios from 'https://esm.sh/axios';
+
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Define types for the API response
+interface Outcome {
+  name: string;
+  price: number;
+  point?: number;
+}
+
+interface Market {
+  key: string;
+  outcomes: Outcome[];
+}
+
+interface Bookmaker {
+  key: string;
+  title: string;
+  markets: Market[];
+}
+
+interface Game {
+  id: string;
+  sport_key: string;
+  sport_title: string;
+  commence_time: string;
+  home_team: string;
+  away_team: string;
+  bookmakers: Bookmaker[];
+}
+
 // Function to save games to Supabase
-async function saveGamesToSupabase(games) {
+async function saveGamesToSupabase(games: Game[]): Promise<void> {
   // Delete ALL existing entries from the available_lines table
   console.log('Deleting all existing entries from available_lines table...');
   const { error: deleteError } = await supabase
@@ -21,10 +51,10 @@ async function saveGamesToSupabase(games) {
   
   console.log('Successfully deleted all existing entries');
 
-  const linesToInsert = games.flatMap((game) =>
-    game.bookmakers.flatMap((bookmaker) =>
-      bookmaker.markets.flatMap((market) =>
-        market.outcomes.map((outcome) => ({
+  const linesToInsert = games.flatMap((game: Game) =>
+    game.bookmakers.flatMap((bookmaker: Bookmaker) =>
+      bookmaker.markets.flatMap((market: Market) =>
+        market.outcomes.map((outcome: Outcome) => ({
           game_id: game.id,
           sport_key: game.sport_key,
           sport_title: game.sport_title,
@@ -59,8 +89,9 @@ async function saveGamesToSupabase(games) {
 
   console.log(`Successfully saved ${linesToInsert.length} betting lines`);
 }
+
 // Function to fetch games from the odds API
-async function getUpcomingGames(sportKey = 'basketball_nba') {
+async function getUpcomingGames(sportKey = 'basketball_nba'): Promise<Game[]> {
   try {
     const endOfDay = new Date();
     endOfDay.setDate(endOfDay.getDate() + 1);
@@ -83,9 +114,10 @@ async function getUpcomingGames(sportKey = 'basketball_nba') {
     throw error;
   }
 }
+
 // Main handler function
 console.log("server started");
-serve(async (req)=>{
+serve(async (req: Request) => {
   // Verify the request is authorized
   try {
     // Fetch games from the API
@@ -102,7 +134,7 @@ serve(async (req)=>{
       },
       status: 200
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in fetch-odds function:', error);
     return new Response(JSON.stringify({
       success: false,
