@@ -397,3 +397,65 @@ export async function getBettingCoefficients(): Promise<BettingCoefficients[]> {
     throw error;
   }
 }
+
+export async function cancelPostedBet(betId: string): Promise<void> {
+  try {
+    console.log(`info: canceling posted bet ${betId}`);
+    
+    // First, get the bet details to verify it can be cancelled and get the money amount
+    const { data: betData, error: betError } = await supabase
+      .from('live_bets')
+      .select('p_money, poster')
+      .eq('id', betId)
+      .is('acceptor', null)
+      .single();
+
+    if (betError) {
+      console.error('error: Error fetching bet:', betError);
+      throw new Error('Bet not found or already accepted');
+    }
+
+    // Get the poster's current balance
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('balance')
+      .eq('id', betData.poster)
+      .single();
+
+    if (userError) {
+      console.error('error: Error fetching user balance:', userError);
+      throw userError;
+    }
+
+    // Calculate new balance
+    const newBalance = userData.balance + betData.p_money;
+
+    // Update user's balance
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ balance: newBalance })
+      .eq('id', betData.poster);
+
+    if (updateError) {
+      console.error('error: Error updating user balance:', updateError);
+      throw updateError;
+    }
+
+    // Delete the bet
+    const { error: deleteError } = await supabase
+      .from('live_bets')
+      .delete()
+      .eq('id', betId)
+      .is('acceptor', null);
+
+    if (deleteError) {
+      console.error('error: Error deleting bet:', deleteError);
+      throw deleteError;
+    }
+
+    console.log('info: Successfully cancelled bet and refunded money');
+  } catch (error) {
+    console.error('error: Error in cancelPostedBet:', error);
+    throw error;
+  }
+}
