@@ -83,3 +83,32 @@ export async function getLiveScores(): Promise<GameScore[]> {
     }
     return scores;
 }
+
+// Takes in game_id and final combined game score to complete the game on the database end
+export async function completeGame(game_id: string, final_score: number): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        // Update game status to complete (3) in todays_games table
+        const { error: updateError } = await supabase
+            .from('todays_games')
+            .update({ 
+                status: 3,
+                final_score: final_score 
+            })
+            .eq('game_id', game_id);
+
+        if (updateError) {
+            console.error('error: Error updating game status:', updateError);
+            return { success: false, error: updateError.message };
+        }
+
+        return { success: true, message: `Successfully marked game ${game_id} as complete` };
+    } catch (error: any) {
+        console.error('error: Error in completeGameBets:', error);
+        return { success: false, error: error.message };
+    }
+}
