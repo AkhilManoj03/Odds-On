@@ -35,6 +35,28 @@ interface Game {
   bookmakers: Bookmaker[];
 }
 
+// Function to fetch today's NBA games to map team names to game IDs
+async function fetchTodaysNbaGames(): Promise<any[]> {
+  const url = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json"
+  try {
+    const response = await axios.get(url);
+    const gameDates = response.data['leagueSchedule']['gameDates'];
+    
+    // Get today's date in MM/DD/YYYY format
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    const todayFormatted = `${mm}/${dd}/${yyyy} 00:00:00`;
+
+    // Find the entry for today's date and return its games array
+    const todaysGames = gameDates.find((dateEntry: any) => dateEntry.gameDate === todayFormatted);
+    if (!todaysGames || todaysGames.length < 1) {
+      console.log("error: no games found, please investigate")
+      return []
+    }
+    return todaysGames ? todaysGames.games : [];
+
 // Function to save games to Supabase
 async function saveGamesToSupabase(games: Game[]): Promise<void> {
   // Delete ALL existing entries from the available_lines table
@@ -48,27 +70,40 @@ async function saveGamesToSupabase(games: Game[]): Promise<void> {
     console.error('Error deleting existing entries:', deleteError);
     throw deleteError;
   }
-  
   console.log('Successfully deleted all existing entries');
 
+  // Fetch today's NBA games to map team names to game IDs
+  const todaysGames = await fetchTodaysNbaGames();
   const linesToInsert = games.flatMap((game: Game) =>
     game.bookmakers.flatMap((bookmaker: Bookmaker) =>
       bookmaker.markets.flatMap((market: Market) =>
-        market.outcomes.map((outcome: Outcome) => ({
-          game_id: game.id,
-          sport_key: game.sport_key,
-          sport_title: game.sport_title,
-          commence_time: game.commence_time,
-          home_team: game.home_team,
-          away_team: game.away_team,
-          bookmaker_key: bookmaker.key,
-          bookmaker_title: bookmaker.title,
-          market_key: market.key,
-          outcome_name: outcome.name,
-          price: outcome.price,
-          point: outcome.point,
-          last_update: new Date().toISOString()
-        }))
+        market.outcomes.map((outcome: Outcome) => {
+          // Find the matching game from the NBA API
+          const matchingGame = todaysGames.find(
+            (nbaGame: any) =>
+              game.home_team.includes(nbaGame['homeTeam']['teamName']) &&
+              game.away_team.includes(nbaGame['awayTeam']['teamName'])
+          );
+
+          // Use the NBA game ID if a match is found, otherwise use the original game ID
+          const game_id = matchingGame ? matchingGame['gameId'] : game.id;
+
+          return {
+            game_id: game_id,
+            sport_key: game.sport_key,
+            sport_title: game.sport_title,
+            commence_time: game.commence_time,
+            home_team: game.home_team,
+            away_team: game.away_team,
+            bookmaker_key: bookmaker.key,
+            bookmaker_title: bookmaker.title,
+            market_key: market.key,
+            outcome_name: outcome.name,
+            price: outcome.price,
+            point: outcome.point,
+            last_update: new Date().toISOString()
+          };
+        })
       )
     )
   );
