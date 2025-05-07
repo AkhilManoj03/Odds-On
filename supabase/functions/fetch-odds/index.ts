@@ -59,18 +59,6 @@ async function fetchTodaysNbaGames(): Promise<any[]> {
 
 // Function to save games to Supabase
 async function saveGamesToSupabase(games: Game[]): Promise<void> {
-  // Delete ALL existing entries from the available_lines table
-  console.log('Deleting all existing entries from available_lines table...');
-  const { error: deleteError } = await supabase
-    .from('available_lines')
-    .delete()
-    .neq('game_id', 'dummy'); // This will match all rows
-  
-  if (deleteError) {
-    console.error('Error deleting existing entries:', deleteError);
-    throw deleteError;
-  }
-  console.log('Successfully deleted all existing entries');
 
   // Fetch today's NBA games to map team names to game IDs
   const todaysGames = await fetchTodaysNbaGames();

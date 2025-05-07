@@ -4,6 +4,10 @@ select
     'fetch-odds-daily',
     '0 0 * * *',
     $$
+    -- First delete all existing entries from available_lines table
+    delete from available_lines;
+    
+    -- Then make the HTTP call to fetch new odds
     select
       net.http_post(
           url:= (select decrypted_secret from vault.decrypted_secrets where name = 'function_url') || '/functions/v1/fetch-odds',
