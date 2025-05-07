@@ -29,7 +29,7 @@ export default function RegisterScreen() {
       <View style={styles.header}>
         <UserPlus size={48} color="#007AFF" />
         <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Join BetBuddy and start betting</Text>
+        <Text style={styles.subtitle}>Join OddsOn and start betting</Text>
       </View>
 
       <View style={styles.form}>

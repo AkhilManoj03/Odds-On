@@ -28,7 +28,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <LogIn size={48} color="#007AFF" />
-        <Text style={styles.title}>Welcome to BetBuddy</Text>
+        <Text style={styles.title}>Welcome to OddsOn</Text>
         <Text style={styles.subtitle}>Sign in to start betting with friends</Text>
       </View>
 
