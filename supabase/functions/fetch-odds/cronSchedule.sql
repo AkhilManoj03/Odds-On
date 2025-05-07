@@ -6,6 +6,9 @@ select
     $$
     -- First delete all existing entries from available_lines table
     delete from available_lines;
+
+    -- Then delete all existing entries from todays_games table
+    delete from todays_games;
     
     -- Then make the HTTP call to fetch new odds
     select

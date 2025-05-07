@@ -55,7 +55,25 @@ async function fetchTodaysNbaGames(): Promise<any[]> {
       console.log("error: no games found, please investigate")
       return []
     }
-    return todaysGames ? todaysGames.games : [];
+
+    for (const game of todaysGames.games) {
+      const { error } = await supabase
+          .from('todays_games')
+          .insert({
+              game_id: game.gameId,
+              status: game.gameStatus
+          });
+
+      if (error) {
+          console.error('error: could not insert games:', error);
+      }
+    }
+    return todaysGames.games;
+  } catch (error) {
+    console.error("error: could not fetching today's NBA games:", error);
+    return [];
+  }
+}
 
 // Function to save games to Supabase
 async function saveGamesToSupabase(games: Game[]): Promise<void> {
